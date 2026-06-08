@@ -1,13 +1,41 @@
 from data import finnhub_client, yfinance_client as yf_client
+from data import india_sentiment as india_sent_module
 
 
 def analyze(ticker: str) -> dict:
+    is_indian = ticker.endswith(".NS") or ticker.endswith(".BO")
+    if is_indian:
+        return _analyze_india(ticker)
+    return _analyze_us(ticker)
+
+
+def _analyze_india(ticker: str) -> dict:
+    info = yf_client.get_info(ticker)
+    company_name = info.get("shortName") or info.get("longName") or ""
+
+    india = india_sent_module.analyze(ticker, company_name=company_name)
+
+    yf_analyst = {
+        "recommendation": info.get("recommendationKey"),
+        "recommendation_mean": info.get("recommendationMean"),
+        "target_price_mean": info.get("targetMeanPrice"),
+        "analyst_count": info.get("numberOfAnalystOpinions"),
+    }
+
+    return {
+        "india_web_sentiment": india,
+        "yf_analyst_summary": yf_analyst,
+        "recent_headlines": india.get("headlines", [])[:12],
+        "score": india.get("score", {"raw": 50}),
+    }
+
+
+def _analyze_us(ticker: str) -> dict:
     news_sentiment = finnhub_client.get_news_sentiment(ticker)
     rec_trends = finnhub_client.get_recommendation_trends(ticker)
     recent_news = finnhub_client.get_company_news(ticker, days=7)
     info = yf_client.get_info(ticker)
 
-    # News sentiment from Finnhub
     sentiment_data = {}
     if isinstance(news_sentiment, dict):
         sentiment_data = {
@@ -22,7 +50,6 @@ def analyze(ticker: str) -> dict:
             "bullish_pct": news_sentiment.get("sentiment", {}).get("bullishPercent"),
         }
 
-    # Analyst recommendations
     analyst_data = {}
     if rec_trends and isinstance(rec_trends, list):
         latest_rec = rec_trends[0]
@@ -49,7 +76,6 @@ def analyze(ticker: str) -> dict:
             "consensus": _get_consensus(bullish_count, bearish_count, total),
         }
 
-    # Yahoo analyst summary
     yf_analyst = {
         "recommendation": info.get("recommendationKey"),
         "recommendation_mean": info.get("recommendationMean"),
@@ -57,16 +83,17 @@ def analyze(ticker: str) -> dict:
         "analyst_count": info.get("numberOfAnalystOpinions"),
     }
 
-    # Recent headlines
     headlines = []
     if isinstance(recent_news, list):
         for item in recent_news[:10]:
             headlines.append({
-                "headline": item.get("headline"),
+                "text": item.get("headline"),
                 "source": item.get("source"),
-                "datetime": item.get("datetime"),
+                "source_type": "news",
+                "published": item.get("datetime"),
                 "url": item.get("url"),
                 "sentiment": _classify_headline(item.get("headline", "")),
+                "score": 0,
             })
 
     score = _compute_sentiment_score(sentiment_data, analyst_data)
