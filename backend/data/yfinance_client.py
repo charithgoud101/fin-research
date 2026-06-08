@@ -52,7 +52,9 @@ def get_price_history(ticker: str, period: str = "1y"):
             "volume": int(row.get("Volume", row.get("volume", 0))),
         })
 
-    cache.set(key, result)
+    # Cache max/5y history for 24h; shorter periods for 1h
+    ttl = 86400 if period in ("max", "5y", "10y") else 3600
+    cache.set(key, result, ttl=ttl)
     return result
 
 

@@ -10,6 +10,7 @@ venv/
 node_modules/
 frontend/dist/
 frontend/.vite/
+nse-service/node_modules/
 
 # OS
 .DS_Store

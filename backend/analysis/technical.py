@@ -26,7 +26,7 @@ def _clean(obj):
 
 
 def analyze(ticker: str) -> dict:
-    price_history = yf_client.get_price_history(ticker, period="1y")
+    price_history = yf_client.get_price_history(ticker, period="max")
     if not price_history:
         return {"error": "No price data available"}
 

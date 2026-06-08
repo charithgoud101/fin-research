@@ -78,11 +78,11 @@ export default function IndiaTab({ ticker }) {
 
   const { fii_dii_flows = [], delivery = {}, circuit_limits = {}, shareholding = {}, announcements = [] } = data
 
-  // Prepare FII/DII chart data (reverse so oldest → newest left to right)
-  const chartData = [...fii_dii_flows].reverse().map((d) => ({
+  // FII/DII is already sorted oldest→newest from nse-service
+  const chartData = fii_dii_flows.map((d) => ({
     date: d.date || '',
-    fii: parseFloat(d.netValue ?? 0),
-    dii: parseFloat(d.netValue1 ?? 0),
+    fii: parseFloat(d.fii_net ?? 0),
+    dii: parseFloat(d.dii_net ?? 0),
   }))
 
   const deliveryPct = parseFloat(delivery.delivery_pct ?? 0)
@@ -139,12 +139,12 @@ export default function IndiaTab({ ticker }) {
           </h3>
           <div className="space-y-3">
             <HoldingBar label="Promoters" pct={shareholding.promoter} color="#3b82f6" />
-            <HoldingBar label="FII / FPI" pct={shareholding.fii} color="#8b5cf6" />
-            <HoldingBar label="DII / MF" pct={shareholding.dii} color="#f59e0b" />
             <HoldingBar label="Public" pct={shareholding.public} color="#6b7280" />
+            {shareholding.fii != null && <HoldingBar label="FII / FPI" pct={shareholding.fii} color="#8b5cf6" />}
+            {shareholding.dii != null && <HoldingBar label="DII / MF" pct={shareholding.dii} color="#f59e0b" />}
           </div>
           <p className="text-slate-600 text-xs mt-3">
-            High promoter holding ({">"} 50%) indicates strong founder confidence.
+            High promoter holding (&gt; 50%) indicates strong founder confidence.
           </p>
         </div>
       )}
