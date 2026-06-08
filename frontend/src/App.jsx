@@ -134,7 +134,7 @@ export default function App() {
               </div>
 
               {activeTab === 'Fundamental' && <FundamentalTab data={data.fundamental} currency={data.currency} />}
-              {activeTab === 'Technical' && <TechnicalTab data={data.technical} />}
+              {activeTab === 'Technical' && <TechnicalTab data={data.technical} currency={data.currency} />}
               {activeTab === 'Sentiment' && <SentimentTab data={data.sentiment} />}
               {activeTab === 'India Markets' && <IndiaTab ticker={data.ticker} />}
               {(activeTab === 'SEC Filings' || activeTab === 'Filings') && (
