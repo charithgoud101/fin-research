@@ -27,10 +27,11 @@ def analyze(ticker: str):
     try:
         info = yf_client.get_info(ticker)
 
-        # Validate ticker via price data
-        price_data = yf_client.get_price_history(ticker, "5d")
-        if not price_data:
-            raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
+        # Validate via fast_info (no rate limit); fall back to price download only if needed
+        if not info.get("currentPrice"):
+            price_check = yf_client.get_price_history(ticker, "5d")
+            if not price_check:
+                raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found or no data available")
 
         # Supplement company profile from Finnhub if yf info is sparse
         profile = {}
@@ -39,8 +40,8 @@ def analyze(ticker: str):
         except Exception:
             pass
 
-        # Current price: prefer yf fast_info, fallback to last close
-        current_price = info.get("currentPrice") or (price_data[-1]["close"] if price_data else None)
+        # Current price: prefer yf fast_info
+        current_price = info.get("currentPrice")
 
         try:
             fund = fundamental.analyze(ticker)

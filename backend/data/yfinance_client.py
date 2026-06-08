@@ -1,3 +1,4 @@
+import time
 import yfinance as yf
 import cache
 
@@ -6,27 +7,51 @@ def _ticker(symbol: str):
     return yf.Ticker(symbol)
 
 
+def _download_with_retry(ticker: str, period: str, retries: int = 3) -> "pd.DataFrame":
+    import pandas as pd
+    for attempt in range(retries):
+        try:
+            df = yf.download(
+                ticker,
+                period=period,
+                auto_adjust=True,
+                progress=False,
+                timeout=30,
+            )
+            if not df.empty:
+                return df
+        except Exception:
+            pass
+        if attempt < retries - 1:
+            time.sleep(2 ** attempt)
+    return None
+
+
 def get_price_history(ticker: str, period: str = "1y"):
     key = f"yf_price_{ticker}_{period}"
     cached = cache.get(key)
     if cached:
         return cached
 
-    hist = _ticker(ticker).history(period=period)
-    if hist.empty:
+    df = _download_with_retry(ticker, period)
+    if df is None or df.empty:
         return None
 
-    result = [
-        {
+    # yf.download returns MultiIndex columns when downloading single ticker
+    if isinstance(df.columns, __import__('pandas').MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    result = []
+    for idx, row in df.iterrows():
+        result.append({
             "date": str(idx.date()),
-            "open": round(row["Open"], 4),
-            "high": round(row["High"], 4),
-            "low": round(row["Low"], 4),
-            "close": round(row["Close"], 4),
-            "volume": int(row["Volume"]),
-        }
-        for idx, row in hist.iterrows()
-    ]
+            "open": round(float(row.get("Open", row.get("open", 0))), 4),
+            "high": round(float(row.get("High", row.get("high", 0))), 4),
+            "low": round(float(row.get("Low", row.get("low", 0))), 4),
+            "close": round(float(row.get("Close", row.get("close", 0))), 4),
+            "volume": int(row.get("Volume", row.get("volume", 0))),
+        })
+
     cache.set(key, result)
     return result
 
