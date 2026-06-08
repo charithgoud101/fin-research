@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from analysis import fundamental, technical, sentiment, scoring
-from data import yfinance_client as yf_client, finnhub_client, edgar_client, fmp_client
+from data import yfinance_client as yf_client, finnhub_client, edgar_client, fmp_client, nse_client
 
 app = FastAPI(title="Fin Research API", version="1.0.0")
 
@@ -130,9 +130,24 @@ def get_news(ticker: str):
 @app.get("/api/filings/{ticker}")
 def get_filings(ticker: str):
     ticker = ticker.upper().strip()
+    is_indian = ticker.endswith(".NS") or ticker.endswith(".BO")
     try:
-        filings = edgar_client.get_recent_filings(ticker)
-        return {"ticker": ticker, "filings": filings}
+        if is_indian:
+            announcements = nse_client.get_corporate_announcements(ticker)
+            return {"ticker": ticker, "market": "IN", "filings": announcements}
+        else:
+            filings = edgar_client.get_recent_filings(ticker)
+            return {"ticker": ticker, "market": "US", "filings": filings}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/india-data/{ticker}")
+def get_india_data(ticker: str):
+    ticker = ticker.upper().strip()
+    try:
+        data = nse_client.get_india_stock_data(ticker)
+        return {"ticker": ticker, **data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

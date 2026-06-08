@@ -17,4 +17,5 @@ export const api = {
   news: (ticker) => request(`/news/${ticker}`),
   filings: (ticker) => request(`/filings/${ticker}`),
   search: (query) => request(`/search/${query}`),
+  indiaData: (ticker) => request(`/india-data/${ticker}`),
 }

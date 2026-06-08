@@ -7,9 +7,23 @@ import FundamentalTab from './components/FundamentalTab'
 import TechnicalTab from './components/TechnicalTab'
 import SentimentTab from './components/SentimentTab'
 import FilingsTab from './components/FilingsTab'
+import IndiaTab from './components/IndiaTab'
 import { api } from './utils/api'
 
-const TABS = ['Fundamental', 'Technical', 'Sentiment', 'SEC Filings']
+const US_EXAMPLES = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN']
+const IN_EXAMPLES = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'WIPRO', 'ICICIBANK']
+
+function isIndianTicker(ticker) {
+  return ticker?.endsWith('.NS') || ticker?.endsWith('.BO')
+}
+
+function getTabs(ticker) {
+  const base = ['Fundamental', 'Technical', 'Sentiment']
+  if (isIndianTicker(ticker)) {
+    return [...base, 'India Markets', 'Filings']
+  }
+  return [...base, 'SEC Filings']
+}
 
 export default function App() {
   const [ticker, setTicker] = useState(null)
@@ -17,6 +31,7 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('Fundamental')
+  const [market, setMarket] = useState('US')
 
   const handleSearch = async (symbol) => {
     setLoading(true)
@@ -34,6 +49,21 @@ export default function App() {
     }
   }
 
+  const handleExampleClick = (t) => {
+    const resolved = market === 'IN' && !t.includes('.') ? `${t}.NS` : t
+    handleSearch(resolved)
+  }
+
+  const handleMarketChange = (m) => {
+    setMarket(m)
+    setData(null)
+    setError(null)
+    setTicker(null)
+  }
+
+  const tabs = getTabs(ticker)
+  const indian = isIndianTicker(ticker)
+
   return (
     <div className="min-h-screen bg-slate-950">
       {/* Header */}
@@ -42,12 +72,22 @@ export default function App() {
           <TrendingUp className="w-7 h-7 text-blue-500" />
           <span className="text-xl font-bold text-white">FinResearch</span>
           <span className="text-slate-500 text-sm ml-1">— Stock Analysis Tool</span>
+          {indian && (
+            <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-orange-900/50 border border-orange-700 text-orange-400 font-medium">
+              🇮🇳 NSE / BSE
+            </span>
+          )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Search */}
-        <SearchBar onSearch={handleSearch} loading={loading} />
+        <SearchBar
+          onSearch={handleSearch}
+          loading={loading}
+          market={market}
+          onMarketChange={handleMarketChange}
+        />
 
         {/* Loading */}
         {loading && (
@@ -73,18 +113,18 @@ export default function App() {
         {data && !loading && (
           <>
             <ScoreCard data={data} />
-            <PriceChart chartData={data.technical?.chart_data || []} />
+            <PriceChart chartData={data.technical?.chart_data || []} currency={data.currency} />
 
             {/* Tabs */}
             <div>
-              <div className="flex gap-1 bg-slate-800 p-1 rounded-xl w-fit mb-4">
-                {TABS.map((tab) => (
+              <div className="flex gap-1 bg-slate-800 p-1 rounded-xl w-fit mb-4 flex-wrap">
+                {tabs.map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === tab
-                        ? 'bg-blue-600 text-white'
+                        ? indian ? 'bg-orange-600 text-white' : 'bg-blue-600 text-white'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -93,16 +133,11 @@ export default function App() {
                 ))}
               </div>
 
-              {activeTab === 'Fundamental' && (
-                <FundamentalTab data={data.fundamental} />
-              )}
-              {activeTab === 'Technical' && (
-                <TechnicalTab data={data.technical} />
-              )}
-              {activeTab === 'Sentiment' && (
-                <SentimentTab data={data.sentiment} />
-              )}
-              {activeTab === 'SEC Filings' && (
+              {activeTab === 'Fundamental' && <FundamentalTab data={data.fundamental} currency={data.currency} />}
+              {activeTab === 'Technical' && <TechnicalTab data={data.technical} />}
+              {activeTab === 'Sentiment' && <SentimentTab data={data.sentiment} />}
+              {activeTab === 'India Markets' && <IndiaTab ticker={data.ticker} />}
+              {(activeTab === 'SEC Filings' || activeTab === 'Filings') && (
                 <FilingsTab ticker={data.ticker} />
               )}
             </div>
@@ -130,15 +165,20 @@ export default function App() {
             <TrendingUp className="w-16 h-16 text-slate-700" />
             <h2 className="text-slate-400 text-xl font-medium">Enter a ticker to begin</h2>
             <p className="text-slate-600 text-sm max-w-md">
-              Get a full analysis — fundamental ratios, technical indicators, sentiment scores,
-              DCF valuation, and analyst recommendations — all in one report.
+              {market === 'IN'
+                ? 'Get full analysis for NSE-listed stocks — fundamental ratios, technical indicators, FII/DII flows, delivery %, shareholding pattern, and NSE announcements.'
+                : 'Get a full analysis — fundamental ratios, technical indicators, sentiment scores, DCF valuation, and analyst recommendations — all in one report.'}
             </p>
             <div className="flex gap-2 mt-2 flex-wrap justify-center">
-              {['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN'].map((t) => (
+              {(market === 'IN' ? IN_EXAMPLES : US_EXAMPLES).map((t) => (
                 <button
                   key={t}
-                  onClick={() => handleSearch(t)}
-                  className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm rounded-full transition-colors"
+                  onClick={() => handleExampleClick(t)}
+                  className={`px-4 py-1.5 border text-slate-300 text-sm rounded-full transition-colors ${
+                    market === 'IN'
+                      ? 'bg-orange-900/20 hover:bg-orange-900/40 border-orange-800'
+                      : 'bg-slate-800 hover:bg-slate-700 border-slate-700'
+                  }`}
                 >
                   {t}
                 </button>

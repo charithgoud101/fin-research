@@ -34,6 +34,7 @@ export default function ScoreCard({ data }) {
   const bd = score.breakdown
   const price = fundamental?.current_price
   const marketCap = fundamental?.market_cap
+  const cur = currency || 'USD'
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
@@ -50,8 +51,8 @@ export default function ScoreCard({ data }) {
           <p className="text-slate-500 text-sm mt-0.5">{sector}</p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-bold text-white">{fmtPrice(price)}</p>
-          <p className="text-slate-400 text-sm">{currency} · {fmtLarge(marketCap)} mkt cap</p>
+          <p className="text-3xl font-bold text-white">{fmtPrice(price, cur)}</p>
+          <p className="text-slate-400 text-sm">{cur} · {fmtLarge(marketCap, cur)} mkt cap</p>
         </div>
       </div>
 

@@ -8,18 +8,30 @@ export function fmtPct(val) {
   return `${Number(val).toFixed(2)}%`
 }
 
-export function fmtLarge(val) {
+export function fmtLarge(val, currency = 'USD') {
   if (val === null || val === undefined) return '—'
   const n = Number(val)
-  if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`
-  if (Math.abs(n) >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
-  if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(2)}M`
-  return `$${n.toFixed(0)}`
+  const sym = currency === 'INR' ? '₹' : '$'
+  if (currency === 'INR') {
+    if (Math.abs(n) >= 1e12) return `${sym}${(n / 1e12).toFixed(2)}T`
+    if (Math.abs(n) >= 1e7) return `${sym}${(n / 1e7).toFixed(2)}Cr`
+    if (Math.abs(n) >= 1e5) return `${sym}${(n / 1e5).toFixed(2)}L`
+    return `${sym}${n.toFixed(0)}`
+  }
+  if (Math.abs(n) >= 1e12) return `${sym}${(n / 1e12).toFixed(2)}T`
+  if (Math.abs(n) >= 1e9) return `${sym}${(n / 1e9).toFixed(2)}B`
+  if (Math.abs(n) >= 1e6) return `${sym}${(n / 1e6).toFixed(2)}M`
+  return `${sym}${n.toFixed(0)}`
 }
 
-export function fmtPrice(val) {
+export function fmtPrice(val, currency = 'USD') {
   if (val === null || val === undefined) return '—'
-  return `$${Number(val).toFixed(2)}`
+  const sym = currency === 'INR' ? '₹' : '$'
+  return `${sym}${Number(val).toFixed(2)}`
+}
+
+export function currencySymbol(currency) {
+  return currency === 'INR' ? '₹' : '$'
 }
 
 export function colorForChange(val) {
