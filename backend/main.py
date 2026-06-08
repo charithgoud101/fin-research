@@ -161,13 +161,10 @@ def autocomplete(q: str = "", market: str = "US"):
     try:
         if market == "IN":
             results = nse_client.search_autocomplete(q)
-            # Fall back to Finnhub if NSE returns nothing
-            if not results:
-                results = finnhub_client.symbol_search(q)
         else:
-            results = finnhub_client.symbol_search(q)
+            results = finnhub_client.symbol_search(q, us_only=True)
         return {"results": results}
-    except Exception as e:
+    except Exception:
         return {"results": []}
 
 

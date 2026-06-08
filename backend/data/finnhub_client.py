@@ -73,25 +73,32 @@ def get_basic_financials(ticker: str) -> dict:
     return result
 
 
-def symbol_search(query: str) -> list:
-    key = f"fh_search_{query.lower()}"
+def symbol_search(query: str, us_only: bool = True) -> list:
+    key = f"fh_search_{'us' if us_only else 'all'}_{query.lower()}"
     cached = cache.get(key)
     if cached is not None:
         return cached
     result = _get("search", {"q": query})
     hits = result.get("result", []) if isinstance(result, dict) else []
-    # Filter to common stocks and ETFs only, limit to 8
-    filtered = [
-        {
-            "symbol": h.get("symbol", ""),
+    filtered = []
+    for h in hits:
+        sym = h.get("symbol", "")
+        if not sym:
+            continue
+        if h.get("type") not in ("Common Stock", "ETP", "DR", "DEPOSITARY RECEIPT"):
+            continue
+        # For US-only: skip any symbol containing a dot (e.g. TSLA.L, AAPL.MX)
+        if us_only and "." in sym:
+            continue
+        filtered.append({
+            "symbol": sym,
             "name": h.get("description", ""),
             "type": h.get("type", ""),
-            "exchange": h.get("displaySymbol", ""),
-        }
-        for h in hits
-        if h.get("type") in ("Common Stock", "ETP", "DR", "DEPOSITARY RECEIPT")
-    ][:8]
-    cache.set(key, filtered, ttl=300)  # 5-minute cache
+            "exchange": "US",
+        })
+        if len(filtered) == 8:
+            break
+    cache.set(key, filtered, ttl=300)
     return filtered
 
 

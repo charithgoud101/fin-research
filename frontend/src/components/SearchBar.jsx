@@ -19,14 +19,20 @@ export default function SearchBar({ onSearch, loading, market, onMarketChange })
   const [fetching, setFetching] = useState(false)
   const inputRef = useRef(null)
   const dropRef = useRef(null)
+  const suppressRef = useRef(false)   // suppresses autocomplete after a submit
   const debouncedQuery = useDebounce(query, 300)
 
   // Fetch suggestions when debounced query changes
   useEffect(() => {
+    if (suppressRef.current) {
+      suppressRef.current = false
+      return
+    }
     const q = debouncedQuery.trim()
     if (q.length < 1) {
       setSuggestions([])
       setShowDrop(false)
+      setFetching(false)
       return
     }
     let cancelled = false
@@ -56,9 +62,11 @@ export default function SearchBar({ onSearch, loading, market, onMarketChange })
   }, [])
 
   const selectSuggestion = useCallback((symbol) => {
+    suppressRef.current = true
     setQuery(symbol)
     setShowDrop(false)
     setSuggestions([])
+    setFetching(false)
     onSearch(symbol)
   }, [onSearch])
 
@@ -71,7 +79,10 @@ export default function SearchBar({ onSearch, loading, market, onMarketChange })
     let t = query.trim().toUpperCase()
     if (!t) return
     if (market === 'IN' && !t.includes('.')) t = `${t}.NS`
+    suppressRef.current = true
     setShowDrop(false)
+    setSuggestions([])
+    setFetching(false)
     onSearch(t)
   }
 
