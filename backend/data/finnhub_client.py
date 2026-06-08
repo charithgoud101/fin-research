@@ -73,6 +73,28 @@ def get_basic_financials(ticker: str) -> dict:
     return result
 
 
+def symbol_search(query: str) -> list:
+    key = f"fh_search_{query.lower()}"
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    result = _get("search", {"q": query})
+    hits = result.get("result", []) if isinstance(result, dict) else []
+    # Filter to common stocks and ETFs only, limit to 8
+    filtered = [
+        {
+            "symbol": h.get("symbol", ""),
+            "name": h.get("description", ""),
+            "type": h.get("type", ""),
+            "exchange": h.get("displaySymbol", ""),
+        }
+        for h in hits
+        if h.get("type") in ("Common Stock", "ETP", "DR", "DEPOSITARY RECEIPT")
+    ][:8]
+    cache.set(key, filtered, ttl=300)  # 5-minute cache
+    return filtered
+
+
 def get_company_news(ticker: str, days: int = 7) -> list:
     key = f"fh_news_{ticker}_{days}"
     cached = cache.get(key)

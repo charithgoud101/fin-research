@@ -153,6 +153,24 @@ def get_india_data(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/autocomplete")
+def autocomplete(q: str = "", market: str = "US"):
+    q = q.strip()
+    if len(q) < 1:
+        return {"results": []}
+    try:
+        if market == "IN":
+            results = nse_client.search_autocomplete(q)
+            # Fall back to Finnhub if NSE returns nothing
+            if not results:
+                results = finnhub_client.symbol_search(q)
+        else:
+            results = finnhub_client.symbol_search(q)
+        return {"results": results}
+    except Exception as e:
+        return {"results": []}
+
+
 @app.get("/api/search/{query}")
 def search_ticker(query: str):
     ticker = query.upper().strip()

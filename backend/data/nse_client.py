@@ -165,6 +165,28 @@ def get_corporate_announcements(ticker: str) -> list:
     return []
 
 
+def search_autocomplete(query: str) -> list:
+    key = f"nse_search_{query.lower()}"
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    data = _get("/search/autocomplete", params={"q": query})
+    symbols = data.get("symbols", []) if isinstance(data, dict) else []
+    results = [
+        {
+            "symbol": f"{s.get('symbol', '')}.NS",
+            "name": s.get("name_of_company", s.get("symbol", "")),
+            "type": "Common Stock",
+            "exchange": "NSE",
+        }
+        for s in symbols
+        if s.get("symbol") and s.get("series") in ("EQ", None, "")
+    ][:8]
+    if results:
+        cache.set(key, results, ttl=300)
+    return results
+
+
 def get_india_stock_data(ticker: str) -> dict:
     """Aggregate all India-specific data for a ticker."""
     fii_dii = get_fii_dii_data()

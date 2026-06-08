@@ -24,10 +24,13 @@ def get(key: str):
     return None
 
 
-def set(key: str, value):
+def set(key: str, value, ttl: int = None):
+    ts = time.time()
+    if ttl is not None:
+        ts = ts - (CACHE_TTL_SECONDS - ttl)  # shift ts so it expires after `ttl` seconds
     with _conn() as conn:
         conn.execute(
             "INSERT OR REPLACE INTO cache (key, value, ts) VALUES (?,?,?)",
-            (key, json.dumps(value), time.time()),
+            (key, json.dumps(value), ts),
         )
         conn.commit()

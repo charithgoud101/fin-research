@@ -18,4 +18,5 @@ export const api = {
   filings: (ticker) => request(`/filings/${ticker}`),
   search: (query) => request(`/search/${query}`),
   indiaData: (ticker) => request(`/india-data/${ticker}`),
+  autocomplete: (q, market) => request(`/autocomplete?q=${encodeURIComponent(q)}&market=${market}`),
 }
